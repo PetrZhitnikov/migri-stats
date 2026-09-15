@@ -57,7 +57,7 @@ jobs:
             exit 0
           fi
 
-          latest_month="$(tail -n 1 reports/migri-stats.csv | cut -d, -f1)"
+          latest_month="$(tail -n 1 reports/migri-stats.csv | cut -d, -f1 | cut -c1-7)"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "data: update Migri statistics through ${latest_month}"
