@@ -123,17 +123,18 @@ def monthly_stats(
 
 
 def add_metrics(stats: pd.DataFrame) -> pd.DataFrame:
-    """Add throughput ratio and monthly queue-reduction estimates."""
+    """Add throughput ratio and monthly/cumulative queue-reduction estimates."""
     result = stats.copy()
     applications = result["applications"].astype("float64")
     result["speed_ratio"] = result["decisions"].div(applications.where(applications.ne(0)))
     result["queue_reduction"] = result["decisions"] - result["applications"]
+    result["cumulative_queue_reduction"] = result["queue_reduction"].cumsum()
     return result
 
 
 def build_figure(stats: pd.DataFrame) -> Figure:
     """Build an interactive, faceted Plotly Express chart."""
-    required = {"speed_ratio", "queue_reduction"}
+    required = {"speed_ratio", "queue_reduction", "cumulative_queue_reduction"}
     prepared = stats if required <= set(stats.columns) else add_metrics(stats)
 
     volumes = prepared.melt(
@@ -149,7 +150,12 @@ def build_figure(stats: pd.DataFrame) -> Figure:
     ratio = prepared[["month", "speed_ratio"]].rename(columns={"speed_ratio": "value"})
     ratio["metric"] = "speed ratio"
     ratio["panel"] = "Speed ratio"
-    chart_data = pd.concat([volumes, reduction, ratio], ignore_index=True)
+    accumulation = prepared[["month", "cumulative_queue_reduction"]].rename(
+        columns={"cumulative_queue_reduction": "value"}
+    )
+    accumulation["metric"] = "cumulative queue reduction"
+    accumulation["panel"] = "Cumulative queue reduction"
+    chart_data = pd.concat([volumes, reduction, ratio, accumulation], ignore_index=True)
 
     figure = px.bar(
         chart_data,
@@ -158,12 +164,20 @@ def build_figure(stats: pd.DataFrame) -> Figure:
         color="metric",
         facet_row="panel",
         barmode="group",
-        category_orders={"panel": ["Speed ratio", "Queue reduction", "Applications and decisions"]},
+        category_orders={
+            "panel": [
+                "Cumulative queue reduction",
+                "Speed ratio",
+                "Queue reduction",
+                "Applications and decisions",
+            ]
+        },
         color_discrete_map={
             "applications": "#3b9880",
             "decisions": "#b63847",
             "queue reduction": "#4589bc",
             "speed ratio": "#f99b1f",
+            "cumulative queue reduction": "#540f5f",
         },
         labels={"month": "Month", "value": "Value", "metric": "Metric"},
         title="Migri applications and decision throughput",
@@ -172,7 +186,7 @@ def build_figure(stats: pd.DataFrame) -> Figure:
     figure.for_each_annotation(
         lambda annotation: annotation.update(text=annotation.text.split("=")[-1])
     )
-    figure.update_layout(height=850, hovermode="x unified", legend_title_text="")
+    figure.update_layout(height=1050, hovermode="x unified", legend_title_text="")
     return figure
 
 

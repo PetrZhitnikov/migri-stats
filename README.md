@@ -18,6 +18,8 @@ The command creates:
 - `data/migri_stats.csv` with normalized monthly data and calculated metrics
 - `migri_stats.html` with an interactive Plotly visualization
 
+A checked-in snapshot is available in [`reports/`](reports/README.md).
+
 Select a date range or custom output locations when needed:
 
 ```bash
@@ -52,6 +54,7 @@ The returned pandas DataFrame has these columns:
 - `speed_ratio`: decisions divided by applications
 - `queue_reduction`: decisions minus applications; positive values indicate a smaller estimated
   queue for that month
+- `cumulative_queue_reduction`: running sum of `queue_reduction` from the selected start month
 
 For August 2026 the source data contains 522 applications and 1,179 decisions. This produces a
 speed ratio of about 2.26 and an estimated queue reduction of 657.

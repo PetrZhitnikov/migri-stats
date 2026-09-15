@@ -35,6 +35,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         f"{latest['applications']:,} applications, "
         f"{latest['decisions']:,} decisions, "
         f"ratio {latest['speed_ratio']:.2f}, "
-        f"queue reduction {latest['queue_reduction']:,}"
+        f"queue reduction {latest['queue_reduction']:,}, "
+        f"cumulative {latest['cumulative_queue_reduction']:,}"
     )
     return 0
