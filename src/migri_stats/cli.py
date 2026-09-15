@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from migri_stats.core import DEFAULT_START, refresh
+from migri_stats.report import build_page
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -26,7 +27,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args.csv.parent.mkdir(parents=True, exist_ok=True)
     args.html.parent.mkdir(parents=True, exist_ok=True)
     stats.to_csv(args.csv, index=False)
-    figure.write_html(args.html, include_plotlyjs="cdn")
+    args.html.write_text(build_page(stats, figure), encoding="utf-8")
 
     latest = stats.iloc[-1]
     print(f"Wrote {len(stats)} months to {args.csv} and {args.html}")

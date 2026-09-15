@@ -66,3 +66,27 @@ def test_august_2026_stats_and_accumulation_match_expected_values() -> None:
     assert august["speed_ratio"] == pytest.approx(1179 / 522)
     assert august["queue_reduction"] == 657
     assert august["cumulative_queue_reduction"] == 707
+
+
+def test_latest_month_requires_both_applications_and_decisions() -> None:
+    data = {
+        **AUGUST_2026_DATA,
+        "applications": {
+            **AUGUST_2026_DATA["applications"],
+            "680": {
+                "group": "MONTH",
+                "count": 700,
+                "children": {
+                    "23331": {
+                        "group": "ASIARYHMA_ID",
+                        "count": 700,
+                        "children": {"42": {"group": "ASIA_TYYPPI_ID", "count": 700}},
+                    }
+                },
+            },
+        },
+    }
+
+    stats = monthly_stats(data, start="2026-07")
+
+    assert stats["month"].dt.strftime("%Y-%m").tolist() == ["2026-07", "2026-08"]

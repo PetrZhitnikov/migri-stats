@@ -10,8 +10,9 @@ from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
 import pandas as pd
-import plotly.express as px
+import plotly.graph_objects as go
 from plotly.graph_objects import Figure
+from plotly.subplots import make_subplots
 
 DEFAULT_BASE_URL = "https://tilastot.migri.fi/"
 DEFAULT_HIERARCHY = ("23331", "42")
@@ -97,11 +98,9 @@ def monthly_stats(
     end: str | None = None,
 ) -> pd.DataFrame:
     """Extract monthly application and decision counts for a Migri hierarchy."""
-    available = {
-        int(index)
-        for case_type in ("applications", "decisions")
-        for index in data.get(case_type, {})
-    }
+    application_months = {int(index) for index in data.get("applications", {})}
+    decision_months = {int(index) for index in data.get("decisions", {})}
+    available = application_months & decision_months
     columns = ["month", "applications", "decisions"]
     if not available:
         return pd.DataFrame(columns=columns)
@@ -133,60 +132,90 @@ def add_metrics(stats: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_figure(stats: pd.DataFrame) -> Figure:
-    """Build an interactive, faceted Plotly Express chart."""
+    """Build the three-section interactive report chart."""
     required = {"speed_ratio", "queue_reduction", "cumulative_queue_reduction"}
     prepared = stats if required <= set(stats.columns) else add_metrics(stats)
 
-    volumes = prepared.melt(
-        id_vars="month",
-        value_vars=["applications", "decisions"],
-        var_name="metric",
-        value_name="value",
+    figure = make_subplots(
+        rows=3,
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.09,
+        row_heights=[0.45, 0.25, 0.30],
+        subplot_titles=(
+            "Applications and decisions",
+            "Decision speed",
+            "Cumulative estimated queue reduction",
+        ),
     )
-    volumes["panel"] = "Applications and decisions"
-    reduction = prepared[["month", "queue_reduction"]].rename(columns={"queue_reduction": "value"})
-    reduction["metric"] = "queue reduction"
-    reduction["panel"] = "Queue reduction"
-    ratio = prepared[["month", "speed_ratio"]].rename(columns={"speed_ratio": "value"})
-    ratio["metric"] = "speed ratio"
-    ratio["panel"] = "Speed ratio"
-    accumulation = prepared[["month", "cumulative_queue_reduction"]].rename(
-        columns={"cumulative_queue_reduction": "value"}
+    figure.add_trace(
+        go.Scatter(
+            x=prepared["month"],
+            y=prepared["applications"],
+            name="Applications",
+            mode="lines",
+            line={"color": "#25836f", "width": 2.4},
+            hovertemplate="%{y:,.0f} applications<extra></extra>",
+        ),
+        row=1,
+        col=1,
     )
-    accumulation["metric"] = "cumulative queue reduction"
-    accumulation["panel"] = "Cumulative queue reduction"
-    chart_data = pd.concat([volumes, reduction, ratio, accumulation], ignore_index=True)
-
-    figure = px.bar(
-        chart_data,
-        x="month",
-        y="value",
-        color="metric",
-        facet_row="panel",
-        barmode="group",
-        category_orders={
-            "panel": [
-                "Cumulative queue reduction",
-                "Speed ratio",
-                "Queue reduction",
-                "Applications and decisions",
-            ]
-        },
-        color_discrete_map={
-            "applications": "#3b9880",
-            "decisions": "#b63847",
-            "queue reduction": "#4589bc",
-            "speed ratio": "#f99b1f",
-            "cumulative queue reduction": "#540f5f",
-        },
-        labels={"month": "Month", "value": "Value", "metric": "Metric"},
-        title="Migri applications and decision throughput",
+    figure.add_trace(
+        go.Scatter(
+            x=prepared["month"],
+            y=prepared["decisions"],
+            name="Decisions",
+            mode="lines",
+            line={"color": "#d65a4a", "width": 2.4},
+            hovertemplate="%{y:,.0f} decisions<extra></extra>",
+        ),
+        row=1,
+        col=1,
     )
-    figure.update_yaxes(matches=None)
-    figure.for_each_annotation(
-        lambda annotation: annotation.update(text=annotation.text.split("=")[-1])
+    figure.add_trace(
+        go.Scatter(
+            x=prepared["month"],
+            y=prepared["speed_ratio"],
+            name="Speed ratio",
+            mode="lines",
+            line={"color": "#d49422", "width": 2.2},
+            fill="tozeroy",
+            fillcolor="rgba(212, 148, 34, 0.12)",
+            hovertemplate="%{y:.2f}×<extra></extra>",
+        ),
+        row=2,
+        col=1,
     )
-    figure.update_layout(height=1050, hovermode="x unified", legend_title_text="")
+    figure.add_trace(
+        go.Scatter(
+            x=prepared["month"],
+            y=prepared["cumulative_queue_reduction"],
+            name="Cumulative queue reduction",
+            mode="lines",
+            line={"color": "#6655a5", "width": 2.5},
+            fill="tozeroy",
+            fillcolor="rgba(102, 85, 165, 0.12)",
+            hovertemplate="%{y:+,.0f}<extra></extra>",
+        ),
+        row=3,
+        col=1,
+    )
+    figure.add_hline(y=1, line_dash="dot", line_color="#8a8f98", row=2, col=1)
+    figure.add_hline(y=0, line_dash="dot", line_color="#8a8f98", row=3, col=1)
+    figure.update_yaxes(title_text="Cases", rangemode="tozero", row=1, col=1)
+    figure.update_yaxes(title_text="Decisions / applications", rangemode="tozero", row=2, col=1)
+    figure.update_yaxes(title_text="Cases", zeroline=False, row=3, col=1)
+    figure.update_xaxes(title_text="Month", row=3, col=1)
+    figure.update_layout(
+        height=900,
+        template="plotly_white",
+        hovermode="x unified",
+        legend={"orientation": "h", "yanchor": "bottom", "y": 1.04, "x": 0},
+        margin={"l": 72, "r": 32, "t": 86, "b": 64},
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="#fbfaf7",
+        font={"family": "Inter, system-ui, sans-serif", "color": "#28302d"},
+    )
     return figure
 
 
