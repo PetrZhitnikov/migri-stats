@@ -73,9 +73,11 @@ Sources:
 
 ## GitHub Pages
 
-The Pages workflow builds the report with fresh Migri data, runs the development checks, and
-deploys the generated `_site/` directory. It runs on every push to `main`, can be started manually,
-and checks for newly published statistics every day at 06:17 Europe/Helsinki time.
+The Pages workflow builds the report with fresh Migri data, runs the development checks, commits
+changed snapshots in `reports/` back to `main`, and deploys the same generated files. It runs on
+every push to `main`, can be started manually, and checks for newly published statistics every day
+at 06:17 Europe/Helsinki time. Commits made by the workflow use GitHub's built-in token, so they do
+not trigger another workflow run.
 
 To enable the first deployment, open **Settings → Pages** in the GitHub repository and select
 **GitHub Actions** as the source. The project site will be available at
@@ -85,8 +87,11 @@ Build the exact Pages artifact locally with:
 
 ```bash
 uv run --frozen migri-stats \
-  --csv _site/migri-stats.csv \
-  --html _site/index.html
+  --csv reports/migri-stats.csv \
+  --html reports/migri-stats.html
+mkdir -p _site
+cp reports/migri-stats.csv _site/migri-stats.csv
+cp reports/migri-stats.html _site/index.html
 ```
 
 ## Development checks

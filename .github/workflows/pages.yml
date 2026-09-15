@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -46,8 +46,28 @@ jobs:
       - name: Build site with the latest Migri data
         run: >-
           uv run --frozen migri-stats
-          --csv _site/migri-stats.csv
-          --html _site/index.html
+          --csv reports/migri-stats.csv
+          --html reports/migri-stats.html
+
+      - name: Commit updated report
+        run: |
+          git add reports/migri-stats.csv reports/migri-stats.html
+          if git diff --cached --quiet; then
+            echo "The checked-in report is already current."
+            exit 0
+          fi
+
+          latest_month="$(tail -n 1 reports/migri-stats.csv | cut -d, -f1)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "data: update Migri statistics through ${latest_month}"
+          git push
+
+      - name: Prepare site artifact
+        run: |
+          mkdir -p _site
+          cp reports/migri-stats.csv _site/migri-stats.csv
+          cp reports/migri-stats.html _site/index.html
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6.0.0

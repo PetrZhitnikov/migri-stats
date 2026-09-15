@@ -1,8 +1,7 @@
 # Migri throughput report
 
-Downloaded from the [Migri statistics service](https://tilastot.migri.fi/#applications/23331/42?l=en&start=540)
-on 15 September 2026. The dataset covers citizenship hierarchy `23331/42` from January 2015
-through August 2026.
+Downloaded from the [Migri statistics service](https://tilastot.migri.fi/#applications/23331/42?l=en&start=540).
+The dataset covers citizenship hierarchy `23331/42` from January 2015 through August 2026.
 
 - [Open the interactive Plotly report](migri-stats.html)
 - [Download the normalized data](migri-stats.csv)
